@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# IDE project files
+.vscode/
+.idea/
+
+# Tkinter-specific files
+*.pyc
+*.pyo
+*.bak
+*.swp
+
+# Environment and build files
+venv/
+build/
+dist/
+*.egg-info/

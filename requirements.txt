@@ -1,0 +1,11 @@
+pip install tk  
+pip install -U matplotlib
+pip install numpy 
+pip install ipympl
+pip install sympy
+pip install networkx 
+
+#For ubuntu
+#sudo apt-get install python3-tk
+#pip --no-cache-dir install -U --force-reinstall matplotlib
+#sudo apt-get install python3-tk     

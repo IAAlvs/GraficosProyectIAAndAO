@@ -1,90 +1,148 @@
 import tkinter as tk
-from tkinter import *
-try:
-    import Tkinter as tk
-except:
-    import tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-import networkx as nx
-#Clase Encarga del funcionamiento de la grafica dirigida
+from tkinter import messagebox
+import random
+import math
+
 class Directed(tk.Frame):
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master=master, **kwargs)
+        self.canvas = tk.Canvas(self, width=600, height=400, bg='white')
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.nodes = []
+        self.connections = []
+        self.selected_node = None
+        self.add_node_button = tk.Button(self, text="Add Node", command=self.add_node)
+        self.add_node_button.pack(side=tk.LEFT)
+        self.delete_node_entry = tk.Entry(self, width=5)
+        self.delete_node_entry.pack(side=tk.LEFT)
+        self.delete_node_button = tk.Button(self, text="Delete Node", command=self.delete_node)
+        self.delete_node_button.pack(side=tk.LEFT)
+        self.add_connection_node1_entry = tk.Entry(self, width=5)
+        self.add_connection_node1_entry.pack(side=tk.LEFT)
+        self.add_connection_node2_entry = tk.Entry(self, width=5)
+        self.add_connection_node2_entry.pack(side=tk.LEFT)
+        self.add_connection_button = tk.Button(self, text="Add Connection", command=self.add_connection)
+        self.add_connection_button.pack(side=tk.LEFT)
+        self.remove_connection_node1_entry = tk.Entry(self, width=5)
+        self.remove_connection_node1_entry.pack(side=tk.LEFT)
+        self.remove_connection_node2_entry = tk.Entry(self, width=5)
+        self.remove_connection_node2_entry.pack(side=tk.LEFT)
+        self.remove_connection_button = tk.Button(self, text="Remove Connection", command=self.remove_connection)
+        self.remove_connection_button.pack(side=tk.LEFT)
+
+    @property
+    def node_size(self):
+        return 20
+    def get_node_by_id(self, node_id):
+        for node in self.nodes:
+            if node.get("id") == node_id:
+                return node
+        messagebox.showerror("Error","Alguno de los nodos no existe")
+        print("Se trato de recuperar un nodo inexistente")
+        return None
+
+    def add_node(self):
+        x = random.randint(self.node_size, self.canvas.winfo_width() - self.node_size)
+        y = random.randint(self.node_size, self.canvas.winfo_height() - self.node_size)
+        node_id = len(self.nodes)
+        node_color = '#{:06x}'.format(random.randint(0, 0xFFFFFF))
+        node = self.canvas.create_oval(x - self.node_size, y - self.node_size, x + self.node_size, y + self.node_size, fill=node_color, outline='black', width=2, tags=('node', 'node-{}'.format(node_id)))
+        text = self.canvas.create_text(x, y, text=str(node_id), tags=())
+        node_element = {"id": node_id, "x": x, "y": y, "text" : text, "oval" : node}
+        self.nodes.append(node_element)
+        self.canvas.tag_bind(node, '<Button-1>', lambda event, node_id=node_id: self.select_node(node_id))
+    def delete_node(self):
+        node_id = int(self.delete_node_entry.get())
+        if self.nodes[node_id] is None:
+            messagebox.showerror("Error", f"El nodo {node_id} no existe")
+            return
+        if node_id >= len(self.nodes):
+            return
+        # Delete the connections to this node
+        for connected_node_id in self.graph.get_connected_nodes(node_id):
+            self.graph.remove_connection(node_id, connected_node_id)
+            self.delete_connection(node_id, connected_node_id)
+
+        # Delete the node from the graph
+        self.graph.remove_node(node_id)
+
+        # Delete the node from the canvas
+        oval, text = self.node_objects.pop(node_id)
+        self.canvas.delete(oval)
+        self.canvas.delete(text)
+
+        # Update the connection tags
+        self.update_connection_tags()
+
+        messagebox.showinfo("Success", f"Node {node_id} deleted.")
+        node = self.nodes[node_id]
+        self.canvas.delete(node)
+        self.nodes.pop(node_id)
+        #self.update_connection_tags()
+
     
-    def __init__(self, master):#Constructor
-        """         from Pages.start_page import StartPage
-        global ec1,puntoinicio,derivada,ci
-        des1="Crear la grafica conectando con el nodo que tiene relación"
-        ec1=StringVar()
-        puntoinicio=StringVar()
-        tk.Frame.__init__(self, master)
-        tk.Frame.configure(self,bg="#A8C3B7") """
-        super().__init__(master)
-        self.master = master
-        self.create_widgets()
-        # Inicializa el grafo dirigido vacío y un diccionario para almacenar los nodos
-        self.graph = nx.DiGraph()
-        self.node_dict = {}
+    def add_connection(self):
+        """
+        Add a connection between two nodes based on the user's input in the entry boxes.
+        """
+        start_node = int(self.add_connection_node1_entry.get())
+        end_node = int(self.add_connection_node2_entry.get())
+        """         print(self.nodes)
+        print(any(ndict["id"] == start_node for ndict in self.nodes))
+        print(any(ndict["id"] == end_node for ndict in self.nodes) """
+        if(any(ndict["id"] == start_node for ndict in self.nodes) is False and
+           any(ndict["id"] != end_node for ndict in self.nodes) is False):
+            messagebox.showerror("Error","Alguno de los nodos no existe")
+            return
+        if start_node == end_node:
+            messagebox.showerror("Error", "El nodo inicial no puede ser el mismo al final.")
+        for diccionario in self.connections:
+            if (diccionario["from"] == start_node and diccionario["to"] == end_node):
+                messagebox.showerror("Error", "La conexion ya  existe.")
+                return
+        else:
+            self.connections.append({"from":start_node,"to":end_node, "connection_id" : f"{start_node}{end_node}"})
+            self.draw_graph(start_node, end_node )
+            messagebox.showinfo("Bien", f"Conexion entre los nodos{start_node} y {end_node} hecha.")
+    def remove_connection(self):
+        """
+        Remove a connection between two nodes based on the user's input in the entry boxes.
+        """
+        start_node = int(self.start_node_input.get())
+        end_node = int(self.end_node_input.get())
 
-        # Configura la capacidad de arrastrar y soltar nodos
-        self.dragged = None
-        self.canvas.tag_bind('node', '<Button-1>', self.click)
-        self.canvas.tag_bind('node', '<Button1-Motion>', self.drag)
-        self.canvas.tag_bind('node', '<ButtonRelease-1>', self.drop)
-
-    def create_widgets(self):
-        # Crea una figura
-        fig = Figure()
-
-        # Crea una subfigura
-        ax = fig.add_subplot(111)
-
-        # Dibuja el grafo vacío en la subfigura
-        nx.draw(self.graph, ax=ax, with_labels=True)
-
-        # Crea un widget de lienzo
-        canvas = FigureCanvasTkAgg(fig, master=self)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-        # Crea un botón para limpiar el grafo
-        clear_button = tk.Button(master=self, text="Limpiar", command=self.clear)
-        clear_button.pack(side=tk.BOTTOM)
-
-        # Guarda la subfigura y el widget de lienzo en la clase
-        self.ax = ax
-        self.canvas = canvas.get_tk_widget()
-
-    def add_node(self, event):
-        # Agrega un nodo a la posición del evento del ratón
-        node_id = len(self.node_dict)
-        x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
-        self.node_dict[node_id] = self.graph.add_node(node_id, pos=(x, y))
-
-        # Dibuja el nuevo nodo
-        circle = self.ax.add_patch(plt.Circle((x, y), radius=0.1, color='r', alpha=0.5))
-        self.canvas.create_text(x, y, text=node_id, tags=('node',), fill='white')
-
-    def click(self, event):
-        # Al hacer clic en un nodo, lo marca como arrastrado
-        item = self.canvas.find_withtag(tk.CURRENT)
-        if item:
-            self.dragged = item[0]
-
-    def drag(self, event):
-        # Al arrastrar un nodo, lo mueve a la posición del cursor
-        if self.dragged:
-            x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
-            self.canvas.coords(self.dragged, x-10, y-10, x+10, y+10)
-
-    def drop(self, event):
-        # Al soltar un nodo arrastrado, lo suelta y verifica si se conecta a otro nodo
-        if self.dragged:
-            item = self.canvas.find_overlapping(event.x, event.y, event.x, event.y)
-            if item:
-                if item[0] != self.dragged:
-                    # Si se encuentra un nodo diferente al nodo arrastrado, se conecta
-                    node
-
-        tk.Label(self, text=des1,font=('San Francisco',11),width=100,height=2,bg="#A8C3B7").pack(side="top", fill="x", pady=5)
-        tk.Button(self,text=" Presiona Regresar",cursor="hand2",height=2,command=lambda: [master.switch_frame(StartPage)]).pack()
-
+        if not self.graph.has_connection(start_node, end_node):
+            messagebox.showerror("Error", "Connection does not exist.")
+        else:
+            self.graph.remove_connection(start_node, end_node)
+            self.draw_graph()
+            messagebox.showinfo("Success", f"Connection between nodes {start_node} and {end_node} removed.")
+    def update_connection_tags(self):
+        """
+        Update the tags for all the connection lines on the canvas.
+        """
+        for node_id, (oval, _) in self.node_objects.items():
+            for connected_node_id in self.graph.get_connected_nodes(node_id):
+                connected_oval, _ = self.node_objects[connected_node_id]
+                line = self.canvas.find_withtag(f"line_{node_id}_{connected_node_id}")[0]
+                self.canvas.itemconfig(line, tags=(oval, connected_oval, f"line_{node_id}_{connected_node_id}"))
+    def draw_graph(self, start_node, end_node):
+        # Limpiar canvas
+        #self.canvas.delete("all")
+        start_node = self.get_node_by_id(start_node)
+        end_node = self.get_node_by_id(end_node)
+        if(start_node is None or end_node is None):
+            return
+        #TO ADD ARROW WE USE PARAMETER arrow=tk.LAST
+        self.canvas.create_line(start_node["x"], start_node["y"], end_node["x"], end_node["y"], tags=("connection", str(start_node["id"]), str(end_node["id"])))
+    def get_contour_coordinates(self, node1, node2):
+        x1, y1 = [node1["x"], node1["y"] ]
+        x2, y2 = [node2["x"], node2["y"]  ]
+        x, y = x1, y1
+        dx, dy = x2 - x1, y2 - y1
+        length = math.sqrt(dx*dx + dy*dy)
+        dx, dy = dx/length, dy/length
+        x2, y2 = x + dx*(node1.node_size+5), y + dy*(node1.node_size+5)
+    
+        return []
+            

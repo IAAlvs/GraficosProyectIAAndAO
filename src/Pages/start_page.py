@@ -24,5 +24,6 @@ class StartPage(tk.Frame):
         #No dirigida
         tk.Button(self,text="Gráfica no dirigida",font=('San Francisco', 20),width=50,height=3,cursor="heart",bg="#5f6468",
             command=lambda: [master.switch_frame(NoDirected)]).pack()
+
 """         tk.Button(self, text="Regresar el menu Anterior",font=('San Francisco', 20),width=50,height=3,cursor="heart",bg="#b4786b",
                 command=lambda: master.switch_frame(StartPage)).pack()  """

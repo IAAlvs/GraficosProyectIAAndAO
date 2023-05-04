@@ -1,7 +1,7 @@
-#GraficosProyectIAAndAO
+# GraficosProyectIAAndAO
 Este proyecto tiene como objetivo crear una matriz de incidencia y adyacencia de graficas dirigidas y no dirigidas
 
-#Instalación
+# Instalación
 
 1.- Clona este repositorio en tu computadora usando el comando **git clone https://github.com/IAAlvs/GraficosProyectIAAndAO.git.**
 

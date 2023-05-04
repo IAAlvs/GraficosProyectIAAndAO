@@ -1,11 +1,14 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
+from Pages.show_matrix import ShowMatrix
 import random
-import math
+
+
 
 class Directed(tk.Frame):
     def __init__(self, master):
-        #Import cause cicular import
+        #Import because cicular import
         from Pages.start_page import StartPage
         super().__init__(master=master)
         self.canvas = tk.Canvas(self, width=600, height=400, bg='white')
@@ -25,17 +28,12 @@ class Directed(tk.Frame):
         self.add_connection_node2_entry.pack(side=tk.LEFT)
         self.add_connection_button = tk.Button(self, text="Agregar conexion",background="#1E90FF", command=self.add_connection)
         self.add_connection_button.pack(side=tk.LEFT)
-        self.add_connection_button = tk.Button(self, text="Generar matriz de conexion").pack()
+        self.show_adjacency_matrix = tk.Button(self, text="Generar matriz de adyacencia", command = self.show_matrix).pack()
+        self.show_incidency_matrix = tk.Button(self, text="Generar matriz de incidencia", command = self.show_matrix).pack()
 
         self.prev_menu = tk.Button(self, text="Regresar al menú anterior", 
                                    command=lambda: [master.switch_frame(StartPage)]).pack(side=tk.LEFT)
 
-        #self.remove_connection_node1_entry = tk.Entry(self, width=5)
-        #self.remove_connection_node1_entry.pack(side=tk.LEFT)
-        #self.remove_connection_node2_entry = tk.Entry(self, width=5)
-        #self.remove_connection_node2_entry.pack(side=tk.LEFT)
-        #self.remove_connection_button = tk.Button(self, text="Remove Connection", command=self.remove_connection)
-        #self.remove_connection_button.pack(side=tk.LEFT)
 
     @property
     def node_size(self):
@@ -98,7 +96,7 @@ class Directed(tk.Frame):
             messagebox.showinfo("Atento","Los dos nodos son necesarios para completar la acción")
             return
         start_node = int(self.add_connection_node1_entry.get())
-        end_node = int(self.add_connection_node1_entry.get())
+        end_node = int(self.add_connection_node2_entry.get())
         if(any(ndict["id"] == start_node for ndict in self.nodes) is False and
            any(ndict["id"] != end_node for ndict in self.nodes) is False):
             messagebox.showerror("Error","Alguno de los nodos no existe")
@@ -122,7 +120,7 @@ class Directed(tk.Frame):
         end_node = int(self.end_node_input.get())
 
         if not self.graph.has_connection(start_node, end_node):
-            messagebox.showerror("Error", "C.")
+            messagebox.showerror("Error", "Conexión entre los nodos no existe")
         else:
             self.graph.remove_connection(start_node, end_node)
             self.draw_graph()
@@ -149,5 +147,22 @@ class Directed(tk.Frame):
         self.canvas.create_line(x1, y1,
             x2, y2, width=0.4, 
             tags=("connection", connection_id))
-
-            
+    
+    def generate_adjacency_matrix(self):
+        #This implementation is for not directed graph
+        connections = self.connections
+        nodes = self.nodes
+        num_nodes = len(nodes)
+        adj_matrix = [[0] * num_nodes for _ in range(num_nodes)]
+        for connection in connections:
+            from_idx = connection['from']
+            to_idx =  connection['to']
+            #For directed graph only change implementation
+            adj_matrix[from_idx][to_idx] = 1
+            adj_matrix[to_idx][from_idx] = 1
+        print(adj_matrix)
+        return adj_matrix
+    def show_matrix(self):
+        matrix = self.generate_adjacency_matrix()
+        ventana_matriz = ShowMatrix(matrix, "Matriz de adyacencia")
+        ventana_matriz.mainloop()

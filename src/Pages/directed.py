@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from Pages.show_matrix import ShowMatrix
+from Pages.my_matrix import MyMatrix
 import random
 
 
@@ -28,8 +29,8 @@ class Directed(tk.Frame):
         self.add_connection_node2_entry.pack(side=tk.LEFT)
         self.add_connection_button = tk.Button(self, text="Agregar conexion",background="#1E90FF", command=self.add_connection)
         self.add_connection_button.pack(side=tk.LEFT)
-        self.show_adjacency_matrix = tk.Button(self, text="Generar matriz de adyacencia", command = self.show_matrix).pack()
-        self.show_incidency_matrix = tk.Button(self, text="Generar matriz de incidencia", command = self.show_matrix).pack()
+        self.show_adjacency_matrix = tk.Button(self, text="Generar matriz de adyacencia", command = self.show_adjacency_matrix).pack()
+        self.show_incidency_matrix = tk.Button(self, text="Generar matriz de incidencia", command = self.show_incidency_matrix).pack()
 
         self.prev_menu = tk.Button(self, text="Regresar al menú anterior", 
                                    command=lambda: [master.switch_frame(StartPage)]).pack(side=tk.LEFT)
@@ -71,7 +72,6 @@ class Directed(tk.Frame):
         for connection in self.connections:
             #delete lines
             if(connection["from"] == node_id or connection["to"] == node_id):
-                print(connection["connection_id"])
                 self.canvas.delete(connection["connection_id"])
                 #Eliminamos del array para que ya noexista esa vieja conexion
                 self.connections.remove(connection)
@@ -101,17 +101,18 @@ class Directed(tk.Frame):
            any(ndict["id"] != end_node for ndict in self.nodes) is False):
             messagebox.showerror("Error","Alguno de los nodos no existe")
             return
-        if start_node == end_node:
-            messagebox.showerror("Error", "El nodo inicial no puede ser el mismo al final.")
+        #if start_node == end_node:
+            #messagebox.showerror("Error", "El nodo inicial no puede ser el mismo al final.")
         for diccionario in self.connections:
             if (diccionario["from"] == start_node and diccionario["to"] == end_node):
                 messagebox.showerror("Error", "La conexion ya  existe.")
                 return
         else:
-            connection_id = f"connection{start_node}{end_node}"
+            connection_id = f"c{start_node}{end_node}"
             self.connections.append({"from":start_node,"to":end_node, "connection_id" : connection_id})
             self.draw_graph(start_node, end_node, connection_id)
             messagebox.showinfo("Bien", f"Conexion entre los nodos {start_node} y {end_node} hecha.")
+        print(self.connections)
     def remove_connection(self):
         """
         Remove a connection between two nodes based on the user's input in the entry boxes.
@@ -142,13 +143,22 @@ class Directed(tk.Frame):
         if(start_node is None or end_node is None):
             return
         #TO ADD ARROW WE USE PARAMETER arrow=tk.LAST
-        x1,y1 = start_node["x"], start_node["y"]
-        x2,y2 = end_node["x"], end_node["y"]
-        self.canvas.create_line(x1, y1,
-            x2, y2, width=0.4, 
-            tags=("connection", connection_id))
-    
-    def generate_adjacency_matrix(self):
+        if(start_node == end_node):
+            x1,y1 = start_node["x"], start_node["y"] # Obtenemos las coordenadas del ovalo
+            self.canvas.create_arc([(x1),y1-30,(x1 + 30),  y1+30,], start= 0, extent = 180,
+                style='pieslice', width=2, outline='black',tags=("connection", connection_id))
+            self.canvas.create_text(x1+30, y1-35, text=connection_id,
+                        fill="black", tags=("connection", connection_id))
+            
+        else:  
+            x1,y1 = start_node["x"], start_node["y"]
+            x2,y2 = end_node["x"], end_node["y"]
+            self.canvas.create_line(x1, y1,
+                x2, y2, width=2, 
+                tags=("connection", connection_id))
+            self.canvas.create_text((x1+x2)/2, (y1+y2)/2, text=connection_id,
+                                    fill="black", tags=("connection", connection_id))
+    def generate_adjacency_matrix(self) -> MyMatrix:
         #This implementation is for not directed graph
         connections = self.connections
         nodes = self.nodes
@@ -160,9 +170,29 @@ class Directed(tk.Frame):
             #For directed graph only change implementation
             adj_matrix[from_idx][to_idx] = 1
             adj_matrix[to_idx][from_idx] = 1
-        print(adj_matrix)
-        return adj_matrix
-    def show_matrix(self):
+        upper_headers = [str(i) for i in range(len(adj_matrix))]
+        side_headers = [str(i) for i in range(len(adj_matrix))]
+        return MyMatrix(adj_matrix, "Matriz de adyacencia", upper_headers, side_headers)
+    def generate_incidency_matrix(self) -> MyMatrix:
+        connections = self.connections
+        nodes = self.nodes
+        num_nodes = len(nodes)
+        lines_set = list(map(lambda c: c['connection_id'], connections))
+        lines_num = len(lines_set)
+        #we denote as set but i s not a set because every node has a unique id
+        nodes_set = list(map(lambda n: n['id'], self.nodes))
+        inc_matrix = [[0] * lines_num for _ in range(num_nodes)]
+        for i, connection in enumerate(connections):
+            for j,node in enumerate(nodes):
+                if(connection["from"] == node["id"] or
+                   connection["to"] == node["id"]):
+                    inc_matrix[j][i] = 1 
+        return MyMatrix(inc_matrix, "Matriz de incidencia", list(lines_set), nodes_set)
+    def show_adjacency_matrix(self):
         matrix = self.generate_adjacency_matrix()
-        ventana_matriz = ShowMatrix(matrix, "Matriz de adyacencia")
+        ventana_matriz = ShowMatrix(matrix)
+        ventana_matriz.mainloop()
+    def show_incidency_matrix(self):
+        matrix = self.generate_incidency_matrix()
+        ventana_matriz = ShowMatrix(matrix)
         ventana_matriz.mainloop()

@@ -4,6 +4,7 @@ from tkinter import ttk
 from Pages.show_matrix import ShowMatrix
 from Pages.my_matrix import MyMatrix
 import random
+from Pages.custom_entry import CustomEntry
 
 
 #Clase Encargada del funcionamiento de la grafica no dirigida
@@ -19,19 +20,18 @@ class NoDirected(tk.Frame):
         self.selected_node = None
         self.add_node_button = tk.Button(self, text="Agregar nodo", command=self.add_node, background="#32CD32")
         self.add_node_button.pack(side=tk.LEFT)
-        self.delete_node_entry = tk.Entry(self, width=5, background="#FF6347")
+        self.delete_node_entry = CustomEntry(self, width=5, background="#FF6347")
         self.delete_node_entry.pack(side=tk.LEFT)
         self.delete_node_button = tk.Button(self, text="Eliminar Nodo", command=self.delete_node, background="#FF6347")
         self.delete_node_button.pack(side=tk.LEFT)
-        self.add_connection_node1_entry = tk.Entry(self, width=5, background="#1E90FF", textvariable="desde")
+        self.add_connection_node1_entry = CustomEntry(self, width=5, background="#1E90FF")
         self.add_connection_node1_entry.pack(side=tk.LEFT)
-        self.add_connection_node2_entry = tk.Entry(self, width=5, background="#1E90FF", textvariable="hasta")
+        self.add_connection_node2_entry = CustomEntry(self, width=5, background="#1E90FF")
         self.add_connection_node2_entry.pack(side=tk.LEFT)
         self.add_connection_button = tk.Button(self, text="Agregar conexion",background="#1E90FF", command=self.add_connection)
         self.add_connection_button.pack(side=tk.LEFT)
         self.show_adjacency_matrix = tk.Button(self, text="Generar matriz de adyacencia", command = self.show_adjacency_matrix).pack()
         self.show_incidency_matrix = tk.Button(self, text="Generar matriz de incidencia", command = self.show_incidency_matrix).pack()
-
         self.prev_menu = tk.Button(self, text="Regresar al menú anterior", 
                                    command=lambda: [master.switch_frame(StartPage)]).pack(side=tk.LEFT)
 
@@ -44,13 +44,23 @@ class NoDirected(tk.Frame):
             if node.get("id") == node_id:
                 return node
         messagebox.showerror("Error","Alguno de los nodos no existe")
-        print("Se trato de recuperar un nodo inexistente")
         return None
+    def chose_next_random(self, number):
+        isin = False
+        for e in self.nodes:
+            if(e["id"] == number):
+                isin = True;
+                break;
+        if(isin == False):
+            return number
+        return self.choserandomplus(number+1)
 
     def add_node(self):
         x = random.randint(self.node_size, self.canvas.winfo_width() - self.node_size)
         y = random.randint(self.node_size, self.canvas.winfo_height() - self.node_size)
         node_id = len(self.nodes)
+        if(node_id != 0):
+            node_id = self.chose_next_random(node_id)
         node_color = '#{:06x}'.format(random.randint(0, 0xFFFFFF))
         node = self.canvas.create_oval(x - self.node_size, y - self.node_size, x + self.node_size, y + self.node_size, fill=node_color, outline='black', width=2, tags=('node', 'node-{}'.format(node_id)))
         text = self.canvas.create_text(x, y, text=str(node_id), tags=("text", f"text-{node_id}"))
@@ -93,8 +103,6 @@ class NoDirected(tk.Frame):
         # Delete the node from the graph
         self.canvas.delete(node["node"])
         self.nodes.remove(node)
-        print("CONECCIONES DESPUES DE SER ELIMINADAS =====")
-        print(self.connections)
 
         messagebox.showinfo("Success", f"Nodo {node_id} y sus conexiones eliminadas.")
 
@@ -110,8 +118,8 @@ class NoDirected(tk.Frame):
             return
         start_node = int(self.add_connection_node1_entry.get())
         end_node = int(self.add_connection_node2_entry.get())
-        if(any(ndict["id"] == start_node for ndict in self.nodes) is False and
-           any(ndict["id"] != end_node for ndict in self.nodes) is False):
+        if(any(ndict["id"] == start_node for ndict in self.nodes) is False or
+           any(ndict["id"] == end_node for ndict in self.nodes) is False):
             messagebox.showerror("Error","Alguno de los nodos no existe")
             return
         #if start_node == end_node:
@@ -139,7 +147,6 @@ class NoDirected(tk.Frame):
         self.connections.append({"from":start_node,"to":end_node, "connection_id" : connection_id})
         self.draw_line(start_node, end_node, connection_id)
         messagebox.showinfo("Bien", f"Conexion entre los nodos {start_node} y {end_node} hecha.")
-        print(self.connections)
     def remove_connection(self):
         """
         Remove a connection between two nodes based on the user's input in the entry boxes.

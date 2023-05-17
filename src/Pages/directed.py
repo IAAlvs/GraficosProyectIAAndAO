@@ -4,9 +4,7 @@ from tkinter import ttk
 from Pages.show_matrix import ShowMatrix
 from Pages.my_matrix import MyMatrix
 import random
-import math
-
-
+from Pages.custom_entry import CustomEntry
 
 class Directed(tk.Frame):
     def __init__(self, master):
@@ -20,20 +18,18 @@ class Directed(tk.Frame):
         self.selected_node = None
         self.add_node_button = tk.Button(self, text="Agregar nodo", command=self.add_node, background="#32CD32")
         self.add_node_button.pack(side=tk.LEFT)
-        self.delete_node_entry = tk.Entry(self, width=5, background="#FF6347")
+        self.delete_node_entry = CustomEntry(self, width=5, background="#FF6347")
         self.delete_node_entry.pack(side=tk.LEFT)
         self.delete_node_button = tk.Button(self, text="Eliminar Nodo", command=self.delete_node, background="#FF6347")
         self.delete_node_button.pack(side=tk.LEFT)
-        self.add_connection_node1_entry = tk.Entry(self,highlightthickness=2, highlightcolor="#1E90FF", width=5, textvariable="desde")
+        self.add_connection_node1_entry = CustomEntry(self,highlightthickness=2, highlightcolor="#1E90FF", width=5, textvariable="Inicio")
         self.add_connection_node1_entry.insert(0, 'Inicio')
-        self.add_connection_node1_entry.bind('<FocusIn>', lambda event: self.on_entry_click(event,"Inicio"))
-        self.add_connection_node1_entry.bind('<FocusOut>', lambda event: self.on_entry_leave(event, "Inicio"))
         self.add_connection_node1_entry.pack(side=tk.LEFT)
-
-        self.add_connection_node2_entry = tk.Entry(self, insertbackground="gray", width=5,highlightthickness=2, highlightcolor="#1E90FF", textvariable="Fin")
-        self.add_connection_node2_entry.insert(0, 'Fin')
-        self.add_connection_node2_entry.bind('<FocusIn>', lambda event: self.on_entry_click(event,"Fin"))
-        self.add_connection_node2_entry.bind('<FocusOut>', lambda event: self.on_entry_leave(event, "Fin"))
+        self.add_connection_node1_entry.delete(0, 'end')  # Elimina el texto actual del Entry
+        self.add_connection_node1_entry.insert(0, "Inicio") 
+        self.add_connection_node2_entry = CustomEntry(self, insertbackground="gray", width=5,highlightthickness=2, highlightcolor="#1E90FF", textvariable="Fin")
+        self.add_connection_node2_entry.delete(0, 'end')  # Elimina el texto actual del Entry
+        self.add_connection_node2_entry.insert(0, "Fin") 
         self.add_connection_node2_entry.pack(side=tk.LEFT)
         self.add_connection_button = tk.Button(self, text="Agregar conexion",background="#1E90FF", command=self.add_connection)
         self.add_connection_button.pack(side=tk.LEFT)
@@ -52,13 +48,22 @@ class Directed(tk.Frame):
             if node.get("id") == node_id:
                 return node
         messagebox.showerror("Error","Alguno de los nodos no existe")
-        print("Se trato de recuperar un nodo inexistente")
         return None
-
+    def chose_next_random(self, number):
+        isin = False
+        for e in self.nodes:
+            if(e["id"] == number):
+                isin = True;
+                break;
+        if(isin == False):
+            return number
+        return self.choserandomplus(number+1)
     def add_node(self):
         x = random.randint(self.node_size, self.canvas.winfo_width() - self.node_size)
         y = random.randint(self.node_size, self.canvas.winfo_height() - self.node_size)
         node_id = len(self.nodes)
+        if(node_id != 0):
+            node_id = self.chose_next_random(node_id)
         node_color = '#{:06x}'.format(random.randint(0, 0xFFFFFF))
         node = self.canvas.create_oval(x - self.node_size, y - self.node_size, x + self.node_size, y + self.node_size, fill=node_color, outline='black', width=2, tags=('node', 'node-{}'.format(node_id)))
         text = self.canvas.create_text(x, y, text=str(node_id), tags=("text", f"text-{node_id}"))
@@ -101,9 +106,6 @@ class Directed(tk.Frame):
         # Delete the node from the graph
         self.canvas.delete(node["node"])
         self.nodes.remove(node)
-        print("CONECCIONES DESPUES DE SER ELIMINADAS =====")
-        print(self.connections)
-
         messagebox.showinfo("Success", f"Nodo {node_id} y sus conexiones eliminadas.")
 
     
@@ -118,12 +120,10 @@ class Directed(tk.Frame):
             return
         start_node = int(self.add_connection_node1_entry.get())
         end_node = int(self.add_connection_node2_entry.get())
-        if(any(ndict["id"] == start_node for ndict in self.nodes) is False and
-           any(ndict["id"] != end_node for ndict in self.nodes) is False):
+        if(any(ndict["id"] == start_node for ndict in self.nodes) is False or
+           any(ndict["id"] == end_node for ndict in self.nodes) is False):
             messagebox.showerror("Error","Alguno de los nodos no existe")
-            return
-        #if start_node == end_node:
-            #messagebox.showerror("Error", "El nodo inicial no puede ser el mismo al final.")
+            return 0
         MAX_PARALEL_LINES = 3 
         paralel_lines = 0
         for diccionario in self.connections:
@@ -147,7 +147,6 @@ class Directed(tk.Frame):
         self.connections.append({"from":start_node,"to":end_node, "connection_id" : connection_id})
         self.draw_line(start_node, end_node, connection_id)
         messagebox.showinfo("Bien", f"Conexion entre los nodos {start_node} y {end_node} hecha.")
-        print(self.connections)
     def remove_connection(self):
         """
         Remove a connection between two nodes based on the user's input in the entry boxes.
@@ -257,14 +256,5 @@ class Directed(tk.Frame):
         matrix = self.generate_incidency_matrix()
         ventana_matriz = ShowMatrix(matrix)
         ventana_matriz.mainloop()
-    def on_entry_click(self, event, text):
-        """Función que se ejecuta cuando se hace clic en el Entry."""
-        if event.widget.get() == text:
-            event.widget.delete(0, tk.END)
-            event.widget.config(fg='gray')
 
-    def on_entry_leave(selv, event, text):
-        """Función que se ejecuta cuando se sale del Entry."""
-        if event.widget.get() == '':
-            event.widget.insert(0, text)
-            event.widget.config(fg='gray')
+            
